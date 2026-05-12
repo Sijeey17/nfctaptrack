@@ -14,13 +14,13 @@ export default function Dashboard(){
   async function fetchItems(){
 
     const { data } = await supabase
-      .from("items")
+      .from("Items_Table")
       .select(`
         id,
         item_code,
         item_name,
-        status,
-        owners(name,student_id,contact)
+        owners_id(id, name,student_id,contact),
+        status
       `)
 
     setItems(data)
@@ -29,7 +29,7 @@ export default function Dashboard(){
   async function deleteItem(id){
 
     await supabase
-      .from("items")
+      .from("Items_Table")
       .delete()
       .eq("id",id)
 
