@@ -1,71 +1,71 @@
-import { useRouter } from "next/router"
-import { useEffect,useState } from "react"
-import supabase from "../../../lib/supabase"
+import { useEffect,useState } from "react";
+import supabase from "../../../lib/supabase";
+import { useRouter } from "next/router";
 
 export default function EditItem(){
 
-  const router=useRouter()
-  const { id } = router.query
+  const router = useRouter();
+  const { id } = router.query;
 
-  const [item,setItem]=useState(null)
+  const [itemCode,setItemCode]=useState("");
+  const [itemName,setItemName]=useState("");
+  const [status,setStatus]=useState("");
 
   useEffect(()=>{
-    if(id) fetchItem()
-  },[id])
+    if(id) fetchItem();
+  },[id]);
 
   async function fetchItem(){
 
     const { data } = await supabase
-      .from("items")
+      .from("Items_Table")
       .select("*")
       .eq("id",id)
-      .single()
+      .single();
 
-    setItem(data)
+    if(data){
+      setItemCode(data.item_code);
+      setItemName(data.item_name);
+      setStatus(data.status);
+    }
   }
 
   async function updateItem(){
 
     await supabase
-      .from("items")
+      .from("Items_Table")
       .update({
-        item_name:item.item_name,
-        status:item.status
+        item_code:itemCode,
+        item_name:itemName,
+        status:status
       })
-      .eq("id",id)
+      .eq("id",id);
 
-    router.push("/admin/dashboard")
+    router.push("/admin/dashboard");
   }
-
-  if(!item) return <p>Loading...</p>
 
   return(
     <div>
-
       <h2>Edit Item</h2>
 
       <input
-        value={item.item_name}
-        onChange={e=>
-          setItem({...item,item_name:e.target.value})
-        }
+        value={itemCode}
+        onChange={e=>setItemCode(e.target.value)}
       />
 
-      <select
-        value={item.status}
-        onChange={e=>
-          setItem({...item,status:e.target.value})
-        }
-      >
-        <option value="lost">Lost</option>
-        <option value="found">Found</option>
-        <option value="claimed">Claimed</option>
-      </select>
+      <input
+        value={itemName}
+        onChange={e=>setItemName(e.target.value)}
+      />
+
+      <input
+        value={status}
+        onChange={e=>setStatus(e.target.value)}
+      />
 
       <button onClick={updateItem}>
         Update
       </button>
-
     </div>
-  )
+  );
 }

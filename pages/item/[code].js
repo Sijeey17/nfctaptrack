@@ -1,33 +1,46 @@
-import supabase from '../../lib/supabase'
+import { useRouter } from "next/router";
+import { useEffect,useState } from "react";
+import supabase from "../../lib/supabase";
 
-export async function getServerSideProps(context) {
+export default function ItemPage(){
 
-  const { code } = context.params
+  const router = useRouter();
+  const { code } = router.query;
 
-  const { data } = await supabase
-    .from('items')
-    .select('*')
-    .eq('item_code', code)
-    .single()
+  const [item,setItem]=useState(null);
 
-  return { props: { item: data } }
-}
+  useEffect(()=>{
+    if(code) loadItem();
+  },[code]);
 
-export default function Item({ item }) {
+  async function loadItem(){
 
-  if(!item){
-    return <h1>Item not found</h1>
+    const { data } = await supabase
+      .from("Items_Table")
+      .select("*")
+      .eq("item_code",code)
+      .single();
+
+    setItem(data);
   }
 
-  return (
-    <div style={{textAlign:"center"}}>
-      <h2>This item belongs to someone</h2>
+  if(!item) return <h3>Loading...</h3>;
 
-      <p>
+  return(
+    <center>
+
+      <h2>NFC TapTrack</h2>
+
+      <p>This item belongs to someone.</p>
+
+      <b>
         Please surrender to SCHOOL SAO OFFICE
-      </p>
+      </b>
 
-      <h3>Item ID: {item.item_code}</h3>
-    </div>
-  )
+      <p>Item Code: {item.item_code}</p>
+
+      <h3>Status: {item.status}</h3>
+
+    </center>
+  );
 }
