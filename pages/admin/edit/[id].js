@@ -49,16 +49,19 @@ export default function EditItem(){
       <h2>Edit Item</h2>
 
       <input
+        placeholder="Item Code"
         value={itemCode}
         onChange={e=>setItemCode(e.target.value)}
       />
 
       <input
+        placeholder="Item Name"
         value={itemName}
         onChange={e=>setItemName(e.target.value)}
       />
 
       <input
+        placeholder="Status"
         value={status}
         onChange={e=>setStatus(e.target.value)}
       />

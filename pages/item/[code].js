@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import supabase from "../../lib/supabase";
 
 export default function ItemPage(){
@@ -7,39 +7,67 @@ export default function ItemPage(){
   const router = useRouter();
   const { code } = router.query;
 
-  const [item,setItem]=useState(null);
+  const [item,setItem] = useState(null);
+  const [loading,setLoading] = useState(true);
 
   useEffect(()=>{
-    if(code) loadItem();
+    if(code){
+      loadItem();
+    }
   },[code]);
 
   async function loadItem(){
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("Items_Table")
       .select("*")
-      .eq("item_code",code)
+      .eq("item_code", code)
       .single();
 
-    setItem(data);
+    console.log(data);
+    console.log(error);
+
+    if(data){
+      setItem(data);
+    }
+
+    setLoading(false);
   }
 
-  if(!item) return <h3>Loading...</h3>;
+  if(loading){
+    return <h3>Loading...</h3>;
+  }
+
+  if(!item){
+    return <h3>Item not found.</h3>;
+  }
 
   return(
-    <center>
+    <center style={{ padding:"40px" }}>
 
-      <h2>NFC TapTrack</h2>
+      <h1>NFC TapTrack</h1>
 
-      <p>This item belongs to someone.</p>
+      <p>
+        This item belongs to someone.
+      </p>
 
-      <b>
-        Please surrender to SCHOOL SAO OFFICE
-      </b>
+      <h3>
+        Please surrender this item to the SCHOOL SAO OFFICE
+      </h3>
 
-      <p>Item Code: {item.item_code}</p>
+      <hr/>
 
-      <h3>Status: {item.status}</h3>
+      <p>
+        <b>Item Code:</b> {item.item_code}
+      </p>
+
+      <p>
+        <b>Item Name:</b> {item.item_name}
+      </p>
+
+      <h2>
+        Status: {item.status}
+      </h2>
 
     </center>
   );

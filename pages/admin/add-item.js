@@ -6,80 +6,107 @@ export default function AddItem(){
 
   const router = useRouter();
 
-  const [itemCode,setItemCode]=useState("");
-  const [itemName,setItemName]=useState("");
-  const [status,setStatus]=useState("");
-  const [ownerId,setOwnerId]=useState("");
+  const [itemCode,setItemCode] = useState("");
+  const [itemName,setItemName] = useState("");
+  const [status,setStatus] = useState("");
+  const [ownerId,setOwnerId] = useState("");
 
-  const [message,setMessage]=useState("");
+  const [message,setMessage] = useState("");
 
-  // =====================
-  // ADD ITEM FUNCTION
-  // =====================
   async function addItem(){
 
-    // ⭐ CHECK IF OWNER EXISTS FIRST
+    // =========================
+    // CHECK IF OWNER EXISTS
+    // =========================
     const { data: owner, error: ownerError } = await supabase
       .from("Owners_Table")
-      .select("student_id")
-      .eq("student_id", Number(ownerId.trim()))
-      .single();
+      .select("*")
+      .eq("student_id", ownerId.trim());
 
-    if (!owner) {
-      alert("Owner student ID not found");
+      console.log("OWNER RESULT:", owner);
+      console.log("OWNER ERROR:", ownerError);
+
+    // OWNER NOT FOUND
+    if(ownerError || owner.length === 0){
+
+      console.log(ownerError);
+
+      setMessage("Owner student ID not found");
       return;
     }
 
-    // ⭐ INSERT ITEM
+    // =========================
+    // INSERT ITEM
+    // =========================
     const { error } = await supabase
       .from("Items_Table")
       .insert([
         {
-          item_code:itemCode,
-          item_name:itemName,
-          status:status,
-          owner_id:ownerId
+          item_code: itemCode,
+          item_name: itemName,
+          status: status,
+          owner_id: ownerId.trim()
         }
       ]);
 
+    // INSERT ERROR
     if(error){
-      console.error(error);
-      setMessage("❌ Failed to add item");
+
+      console.log(error);
+
+      setMessage("Failed to add item");
       return;
     }
 
-    setMessage("✅ Item Added Successfully!");
+    // SUCCESS
+    setMessage("Item added successfully!");
 
+    // REDIRECT
     setTimeout(()=>{
       router.push("/admin/dashboard");
     },1500);
   }
 
   return(
-    <div>
+    <div style={{padding:"20px"}}>
 
-      <h2>Add Item</h2>
+      <h1>Add Item</h1>
 
       <input
+        type="text"
         placeholder="Item Code"
-        onChange={e=>setItemCode(e.target.value)}
+        value={itemCode}
+        onChange={(e)=>setItemCode(e.target.value)}
       />
 
+      <br/><br/>
+
       <input
+        type="text"
         placeholder="Item Name"
-        onChange={e=>setItemName(e.target.value)}
+        value={itemName}
+        onChange={(e)=>setItemName(e.target.value)}
       />
 
+      <br/><br/>
+
       <input
+        type="text"
         placeholder="Status"
-        onChange={e=>setStatus(e.target.value)}
+        value={status}
+        onChange={(e)=>setStatus(e.target.value)}
       />
 
-      {/* ⭐ OWNER STUDENT ID TEXTBOX */}
+      <br/><br/>
+
       <input
+        type="text"
         placeholder="Owner Student ID"
-        onChange={e=>setOwnerId(e.target.value)}
+        value={ownerId}
+        onChange={(e)=>setOwnerId(e.target.value)}
       />
+
+      <br/><br/>
 
       <button onClick={addItem}>
         Save Item
