@@ -1,8 +1,28 @@
 import { useState } from "react";
 import supabase from "../../lib/supabase";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
+import { FaTag, FaIdCard } from 'react-icons/fa';
+import { FiMail } from "react-icons/fi";
+import { BiRename } from "react-icons/bi";
+import { GrStatusGoodSmall } from "react-icons/gr"; // Grommet (Perfect for a small dot indicator)
+import { RiCheckboxCircleLine, RiErrorWarningLine } from "react-icons/ri"; // Remix Icon
+import { MdOutlineLoop } from "react-icons/md"; // Material Design (Pending/In Progress)
 
 export default function AddItem() {
+
+  useEffect(() => {
+    checkUser();
+  }, []);
+
+  async function checkUser(){
+
+    const { data } = await supabase.auth.getUser();
+
+    if(!data.user){
+      router.push("/login");
+    }
+  }
 
   const router = useRouter();
 
@@ -18,6 +38,11 @@ export default function AddItem() {
     // =========================
     // CHECK IF OWNER EXISTS
     // =========================
+    if (!itemCode || !itemName || !status || !ownerId) {
+      setMessage("Please fill in all fields");
+      return;
+    }
+
     const { data: owner, error: ownerError } = await supabase
       .from("Owners_Table")
       .select("*")
@@ -28,7 +53,7 @@ export default function AddItem() {
 
       console.log(ownerError);
 
-      setMessage("❌ Owner student ID not found");
+      setMessage("Owner student ID not found");
       return;
     }
 
@@ -51,17 +76,54 @@ export default function AddItem() {
 
       console.log(error);
 
-      setMessage("❌ Failed to add item");
+      setMessage("Failed to add item");
       return;
     }
 
     // SUCCESS
-    setMessage("✅ Item added successfully!");
+    setMessage("Item added successfully!");
 
     // REDIRECT
     setTimeout(() => {
       router.push("/admin/dashboard");
     }, 1500);
+  }
+
+  async function signOut(){
+
+    const { error } = await supabase.auth.signOut();
+
+    if(error){
+      alert("Failed to sign out");
+      return;
+    }
+
+    router.push("/login");
+  }
+
+  useEffect(() => {
+  generateItemCode();
+  }, []);
+
+  async function generateItemCode() {
+    const { data, error } = await supabase
+      .from("Items_Table")
+      .select("item_code")
+      .order("item_code", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    if (data.length === 0) {
+      // FIRST ITEM
+      setItemCode("1000");
+    } else {
+      const lastCode = parseInt(data[0].item_code);
+      setItemCode(String(lastCode + 1));
+    }
   }
 
   return (
@@ -108,14 +170,7 @@ export default function AddItem() {
             onClick={() => router.push("/admin/dashboard")}
             style={navButton}
           >
-            Dashboard
-          </button>
-
-          <button
-            onClick={() => router.push("/admin/owners")}
-            style={navButton}
-          >
-            Owner Management
+            Home
           </button>
 
           <button
@@ -128,6 +183,23 @@ export default function AddItem() {
             Add Item
           </button>
 
+          <button
+            onClick={() => router.push("/admin/owners")}
+            style={navButton}
+          >
+            Manage Owners
+          </button>
+
+          <button
+            onClick={signOut}
+            style={{
+              ...navButton,
+              background:"red",
+              color:"white"
+            }}
+          >
+            Sign Out
+          </button>
         </div>
       </div>
 
@@ -135,7 +207,7 @@ export default function AddItem() {
       <div
         style={{
           textAlign: "center",
-          marginTop: "40px"
+          marginTop: "10px"
         }}
       >
         <h1
@@ -158,8 +230,8 @@ export default function AddItem() {
         style={{
           display: "flex",
           justifyContent: "center",
-          marginTop: "20px",
-          marginBottom: "40px"
+          marginTop: "10px",
+          marginBottom: "10px"
         }}
       >
 
@@ -183,9 +255,14 @@ export default function AddItem() {
             <input
               type="text"
               value={itemCode}
-              onChange={(e) => setItemCode(e.target.value)}
-              style={inputStyle}
+              readOnly
+              style={{
+                ...inputStyle,
+                backgroundColor: "#eee",
+                cursor: "not-allowed"
+              }}
             />
+            <FaTag style={{ marginLeft:"-30px", color:"black" }} />
           </div>
 
           {/* ITEM NAME */}
@@ -196,10 +273,12 @@ export default function AddItem() {
 
             <input
               type="text"
+              placeholder="e.g. Wallet, Keys, etc."
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               style={inputStyle}
             />
+            <BiRename style={{ marginLeft:"-30px", color:"black" }} />
           </div>
 
           {/* STATUS */}
@@ -210,14 +289,18 @@ export default function AddItem() {
 
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
               style={inputStyle}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              <option value="">Select Status</option>
+              <option value="" disabled hidden sytle={{color: "gray"}}>Select an option...</option>
               <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
               <option value="Lost">Lost</option>
               <option value="Found">Found</option>
             </select>
+            {status === "" && <GrStatusGoodSmall color="gray" style={{ marginLeft:"-30px" }} /> || status === "Active" && <GrStatusGoodSmall color="green" style={{ marginLeft:"-30px" }} /> || status === "Inactive" && <GrStatusGoodSmall color="red" style={{ marginLeft:"-30px" }} />}
+            {status === "Lost" && <RiErrorWarningLine color="red" style={{ marginLeft:"-30px" }} />}
+            {status === "Found" && <RiCheckboxCircleLine color="green" style={{ marginLeft:"-30px" }} />}
           </div>
 
           {/* OWNER ID */}
@@ -228,10 +311,12 @@ export default function AddItem() {
 
             <input
               type="text"
+              placeholder="e.g. 2000123456"
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
               style={inputStyle}
             />
+            <FaIdCard style={{ marginLeft:"-30px", color:"black" }} />
           </div>
 
           {/* BUTTON */}
@@ -263,45 +348,13 @@ export default function AddItem() {
           <p
             style={{
               textAlign: "center",
-              marginTop: "20px",
+              marginTop: "30px",
               fontWeight: "bold"
             }}
           >
             {message}
           </p>
-
         </div>
-      </div>
-
-      {/* FOOTER */}
-      <div
-        style={{
-          backgroundColor: "rgba(255,255,255,0.5)",
-          padding: "20px 40px",
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: "14px"
-        }}
-      >
-
-        <div>
-          <h4>Site</h4>
-          <p>Dashboard</p>
-          <p>Add Item</p>
-        </div>
-
-        <div>
-          <h4>Help</h4>
-          <p>Customer Support</p>
-          <p>Terms & Conditions</p>
-        </div>
-
-        <div>
-          <h4>Contact</h4>
-          <p>Tel: +63 09123456789</p>
-          <p>Email: nfctaptrack@gmail.com</p>
-        </div>
-
       </div>
     </div>
   );
@@ -315,7 +368,7 @@ const navButton = {
   padding: "8px 15px",
   border: "1px solid gray",
   borderRadius: "5px",
-  backgroundColor: "#eee",
+  backgroundColor: "#ffffff",
   cursor: "pointer"
 };
 
@@ -336,5 +389,5 @@ const inputStyle = {
   padding: "12px",
   borderRadius: "5px",
   border: "1px solid gray",
-  fontSize: "16px"
+  fontSize: "16px",
 };

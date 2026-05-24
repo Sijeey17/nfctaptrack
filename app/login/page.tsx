@@ -4,6 +4,7 @@ import { useState } from "react";
 import supabase from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { MdPerson } from "react-icons/md";
 
 export default function Login() {
 
@@ -11,19 +12,48 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   async function login() {
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+    console.log(data);
+    console.log(error);
 
     if (!error) {
-      router.push("/admin/dashboard");
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+      }, 500);
+      console.log(await supabase.auth.getSession());
     } else {
       alert(error.message);
     }
+  }
+
+  async function forgotPassword(){
+    if(!email){
+      alert("Enter your email first");
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: "http://localhost:3000/reset-password"
+      }
+    );
+
+    if(error){
+      alert(error.message);
+      return;
+    }
+
+    alert("Password reset email sent!");
   }
 
   return (
@@ -82,7 +112,7 @@ export default function Login() {
             borderRadius: "10px",
             position: "relative",
             overflow: "hidden",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.3)"
+            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
           }}
         >
 
@@ -139,19 +169,41 @@ export default function Login() {
           <div style={{ marginBottom: "25px" }}>
             <p>Email</p>
 
-            <input
-              type="email"
-              placeholder="Enter Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <div
               style={{
-                width: "94%",
-                padding: "10px",
-                borderRadius: "5px",
+                display: "flex",
+                alignItems: "center",
                 border: "1px solid gray",
-                marginTop: "5px"
-              }}
-            />
+                borderRadius: "5px",
+                marginTop: "5px",
+                backgroundColor: "white"
+              }}>
+                <input
+                type="email"
+                placeholder="Enter Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  border: "none",
+                  outline: "none",
+                  borderRadius: "5px"
+                }}/>
+
+                <button
+                  type="button"
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    padding: "10px",
+                    fontSize: "14px",
+                    pointerEvents: "none"
+                  }}
+                >
+                  <MdPerson style={{color:"black" }} />
+                </button>
+            </div>
           </div>
 
           {/* PASSWORD */}
@@ -167,8 +219,7 @@ export default function Login() {
                 borderRadius: "5px",
                 marginTop: "5px",
                 backgroundColor: "white"
-              }}
-            >
+              }}>
 
               <input
                 type={showPassword ? "text" : "password"}
@@ -223,7 +274,19 @@ export default function Login() {
           >
             Sign In
           </button>
-
+          <p
+            onClick={forgotPassword}
+            style={{
+              marginTop:"15px",
+              textAlign:"center",
+              color:"#333",
+              cursor:"pointer",
+              textDecoration:"underline",
+              fontSize:"14px"
+            }}
+          >
+            Forgot Password?
+          </p>
         </div>
       </div>
 

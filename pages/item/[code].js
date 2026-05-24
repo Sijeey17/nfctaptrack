@@ -165,7 +165,7 @@ export default function ItemPage(){
               >
                 This item belongs to someone.
                 Please surrender this item to the
-                SCHOOL SAO OFFICE.
+                STI COLLEGE CALOOCAN.
               </p>
             </div>
 
