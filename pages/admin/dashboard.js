@@ -2,12 +2,9 @@ import { useEffect, useState } from "react";
 import supabase from "../../lib/supabase";
 import { useRouter } from "next/router";
 import { GrStatusGoodSmall } from "react-icons/gr";
-import {
-  RiCheckboxCircleLine,
-  RiErrorWarningLine
-} from "react-icons/ri";
+import { RiCheckboxCircleLine, RiErrorWarningLine } from "react-icons/ri";
 
-  export default function Dashboard(){
+export default function Dashboard(){
 
   useEffect(() => {
     checkUser();
@@ -62,6 +59,9 @@ import {
 
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [generatedLink, setGeneratedLink] = useState("");
 
   // PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,6 +126,25 @@ import {
     ]);
 
     fetchItems();
+  }
+
+  function generateNfcLink(item){
+
+  const link =
+    `https://nfctaptrack.vercel.app/item/${item.item_code}`;
+
+    setSelectedItem(item);
+
+    setGeneratedLink(link);
+
+    setShowLinkPanel(true);
+  }
+
+  async function copyLink(){
+
+    await navigator.clipboard.writeText(generatedLink);
+
+    alert("Link copied!");
   }
 
   // =========================
@@ -366,6 +385,17 @@ import {
                   Delete
                 </button>
 
+                <button
+                  onClick={() => generateNfcLink(item)}
+                  style={{
+                    ...smallBtn,
+                    background:"#0d6efd",
+                    color:"white",
+                    marginLeft:"10px"
+                  }}
+                >
+                  NFC Link
+                </button>
               </div>
 
             </div>
@@ -447,6 +477,130 @@ import {
         </div>
       )}
 
+      {/* NFC LINK PANEL */}
+      {showLinkPanel && selectedItem && (
+
+        <div
+          style={{
+            position:"fixed",
+            top:0,
+            left:0,
+            width:"100%",
+            height:"100%",
+            background:"rgba(0,0,0,0.5)",
+            display:"flex",
+            justifyContent:"center",
+            alignItems:"center",
+            zIndex:999
+          }}
+        >
+
+          <div
+            style={{
+              width:"500px",
+              background:"white",
+              padding:"30px",
+              borderRadius:"10px",
+              boxShadow:"0 4px 10px rgba(0,0,0,0.3)"
+            }}
+          >
+
+            <h2
+              style={{
+                marginTop:0,
+                textAlign:"center"
+              }}
+            >
+              NFC Sticker Link
+            </h2>
+
+            <hr/>
+
+            <p>
+              <b>Item Name:</b>
+              {" "}
+              {selectedItem.item_name}
+            </p>
+
+            <p>
+              <b>Item Code:</b>
+              {" "}
+              {selectedItem.item_code}
+            </p>
+
+            <p>
+              <b>Owner ID:</b>
+              {" "}
+              {selectedItem.owner_id}
+            </p>
+
+            <p>
+              <b>Status:</b>
+              {" "}
+              {selectedItem.status}
+            </p>
+
+            <div style={{ marginTop:"20px" }}>
+
+              <input
+                value={generatedLink}
+                readOnly
+                style={{
+                  width:"95%",
+                  padding:"12px",
+                  border:"1px solid gray",
+                  borderRadius:"5px",
+                  background:"#f3f3f3"
+                }}
+              />
+
+            </div>
+
+            <div
+              style={{
+                display:"flex",
+                justifyContent:"space-between",
+                marginTop:"20px"
+              }}
+            >
+
+              <button
+                onClick={copyLink}
+                style={{
+                  padding:"10px 20px",
+                  border:"none",
+                  borderRadius:"5px",
+                  background:"#0d6efd",
+                  color:"white",
+                  cursor:"pointer"
+                }}
+              >
+                Copy Link
+              </button>
+
+              <button
+                onClick={()=>
+                  setShowLinkPanel(false)
+                }
+                style={{
+                  padding:"10px 20px",
+                  border:"none",
+                  borderRadius:"5px",
+                  background:"#444",
+                  color:"white",
+                  cursor:"pointer"
+                }}
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
     </div>
   );
 }
