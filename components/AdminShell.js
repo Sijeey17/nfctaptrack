@@ -68,7 +68,7 @@ export default function AdminShell({ children }) {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <Link href="/admin/dashboard" className="brand"><span className="brand-mark">N</span><span><span className="brand-name">TapTrack</span><span className="brand-caption" style={{display:"block"}}>Campus lost &amp; found</span></span></Link>
+      <Link href="/admin/dashboard" className="brand"><span className="brand-mark brand-icon"><img src="/taptrack-icon.svg" alt="" /></span><span><span className="brand-name">TapTrack</span><span className="brand-caption" style={{display:"block"}}>Campus lost &amp; found</span></span></Link>
       <div className="nav-label">WORKSPACE</div>
       <nav>{links.map(([href,label,icon])=><Link key={href} href={href} className={`nav-link ${current===href || (href==="/admin/dashboard" && current.includes("/edit")) ? "active" : ""}`}><span className="nav-icon">{icon}</span>{label}</Link>)}</nav>
       <div className="sidebar-bottom"><div className="profile-row"><div className="avatar profile-avatar">{profile.avatarUrl && !avatarFailed ? <img src={profile.avatarUrl} alt={`${profile.name} profile`} onError={() => setAvatarFailed(true)} /> : initials}</div><div className="profile-copy"><div className="profile-name" title={profile.name}>{profile.name}</div><div className="profile-role">Administrator</div></div></div></div>
