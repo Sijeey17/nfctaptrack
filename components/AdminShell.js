@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FiGrid, FiPackage, FiUsers, FiLogOut } from "react-icons/fi";
+import { FiGrid, FiPackage, FiUsers, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
 import supabase from "../lib/supabase";
 
 function getProfile(user) {
@@ -21,15 +21,62 @@ export default function AdminShell({ children }) {
   const current = router.pathname;
   const [profile, setProfile] = useState({ name: "Administrator", avatarUrl: "" });
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [theme, setTheme] = useState("dark");
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    const savedTheme = window.localStorage.getItem("taptrack-theme") === "light" ? "light" : "dark";
+    setTheme(savedTheme);
+    document.documentElement.dataset.theme = savedTheme;
+  }, []);
+
+  function toggleTheme() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("taptrack-theme", nextTheme);
+  }
+
+  useEffect(() => {
+    let active = true;
+    const verifyUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!active) return;
+      if (error || !data.user) {
+        router.replace("/login");
+        return;
+      }
+      setProfile(getProfile(data.user));
+      setAvatarFailed(false);
+      setAuthReady(true);
+    };
+    verifyUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === "SIGNED_OUT" || !session?.user) {
+        setAuthReady(false);
+        router.replace("/login");
+        return;
+      }
+      setProfile(getProfile(session.user));
+      setAvatarFailed(false);
+      setAuthReady(true);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!authReady) return undefined;
     let timeout;
     const reset = () => {
       clearTimeout(timeout);
       timeout = setTimeout(async () => {
         await supabase.auth.signOut();
         window.alert("Your session expired. Please sign in again.");
-        router.push("/login");
+        router.replace("/login");
       }, 15 * 60 * 1000);
     };
     ["mousemove", "keydown", "click"].forEach((event) => window.addEventListener(event, reset));
@@ -38,26 +85,11 @@ export default function AdminShell({ children }) {
       clearTimeout(timeout);
       ["mousemove", "keydown", "click"].forEach((event) => window.removeEventListener(event, reset));
     };
-  }, [router]);
-
-  useEffect(() => {
-    let active = true;
-    const applyUser = (user) => {
-      if (!active) return;
-      setProfile(getProfile(user));
-      setAvatarFailed(false);
-    };
-    supabase.auth.getUser().then(({ data }) => applyUser(data.user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applyUser(session?.user));
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+  }, [authReady, router]);
 
   async function signOut() {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.replace("/login");
   }
   const links = [
     ["/admin/dashboard", "Overview", <FiGrid key="grid" />],
@@ -66,12 +98,21 @@ export default function AdminShell({ children }) {
   ];
   const initials = profile.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
+  if (!authReady) return <div className="route-loading" role="status" aria-live="polite"><span className="loading-spinner" /><span>Checking your session…</span></div>;
+
   return <div className="app-shell">
     <aside className="sidebar">
       <Link href="/admin/dashboard" className="brand"><span className="brand-mark brand-icon"><img src="/taptrack-icon.svg" alt="" /></span><span><span className="brand-name">TapTrack</span><span className="brand-caption" style={{display:"block"}}>Campus lost &amp; found</span></span></Link>
       <div className="nav-label">WORKSPACE</div>
       <nav>{links.map(([href,label,icon])=><Link key={href} href={href} className={`nav-link ${current===href || (href==="/admin/dashboard" && current.includes("/edit")) ? "active" : ""}`}><span className="nav-icon">{icon}</span>{label}</Link>)}</nav>
-      <div className="sidebar-bottom"><div className="profile-row"><div className="avatar profile-avatar">{profile.avatarUrl && !avatarFailed ? <img src={profile.avatarUrl} alt={`${profile.name} profile`} onError={() => setAvatarFailed(true)} /> : initials}</div><div className="profile-copy"><div className="profile-name" title={profile.name}>{profile.name}</div><div className="profile-role">Administrator</div></div></div></div>
+      <div className="sidebar-bottom">
+        <button type="button" className="theme-toggle" role="switch" aria-checked={theme === "dark"} onClick={toggleTheme}>
+          <span className="theme-toggle-icon">{theme === "dark" ? <FiSun /> : <FiMoon />}</span>
+          <span className="theme-toggle-label">{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+          <span className={`theme-switch ${theme === "dark" ? "is-dark" : ""}`}><span /></span>
+        </button>
+        <div className="profile-row"><div className="avatar profile-avatar">{profile.avatarUrl && !avatarFailed ? <img src={profile.avatarUrl} alt={`${profile.name} profile`} onError={() => setAvatarFailed(true)} /> : initials}</div><div className="profile-copy"><div className="profile-name" title={profile.name}>{profile.name}</div><div className="profile-role">Administrator</div></div></div>
+      </div>
     </aside>
     <main className="main-panel"><header className="topbar"><div className="crumb">Workspace <span style={{padding:"0 7px",color:"#c3ccc6"}}>/</span> {current.includes("owners")?"Owners":current.includes("add-item")?"Add item":current.includes("edit")?"Edit item":"Overview"}</div><div className="top-actions"><span className="top-date">NFC item management</span><button className="button button-quiet button-small" onClick={signOut}><FiLogOut /> Sign out</button></div></header>{children}</main>
   </div>;
