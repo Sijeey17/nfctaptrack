@@ -21,6 +21,9 @@ export default function App({ Component, pageProps }) {
 
   return <>
     <Component {...pageProps} />
-    {isNavigating && <div className="route-loading" role="status" aria-live="polite"><span className="loading-spinner" /><span>Loading page…</span></div>}
+    {isNavigating && <div className="route-loading" role="status" aria-live="polite">
+      <span className="loading-spinner" />
+      <span>Loading page…</span>
+    </div>}
   </>;
 }

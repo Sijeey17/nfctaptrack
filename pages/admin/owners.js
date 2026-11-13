@@ -6,15 +6,177 @@ import AdminShell from "../../components/AdminShell";
 
 const PAGE_SIZE=9;
 export default function OwnersPage(){
-  const router=useRouter();const [owners,setOwners]=useState([]);const [search,setSearch]=useState("");const [page,setPage]=useState(1);const [name,setName]=useState("");const [studentId,setStudentId]=useState("");const [contact,setContact]=useState("");const [email,setEmail]=useState("");const [editingId,setEditingId]=useState(null);const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
-  useEffect(()=>{(async()=>{const {data:{user}}=await supabase.auth.getUser();if(!user){router.push("/login");return;}const {data,error}=await supabase.from("Owners_Table").select("*");if(error)setNotice("Could not load owners.");else setOwners(data||[]);})();},[router]);
-  const filtered=useMemo(()=>owners.filter(o=>[o.name,o.student_id,o.owner_email,o.contact].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))),[owners,search]);const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));const current=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
-  function clear(){setName("");setStudentId("");setContact("");setEmail("");setEditingId(null);setNotice("");}
-  async function saveOwner(e){e.preventDefault();if(!name.trim()||!studentId.trim()||!contact.trim()||!email.trim()){setNotice("Complete each field before saving.");return;}setBusy(true);const result=editingId?await supabase.from("Owners_Table").update({name:name.trim(),contact:contact.trim(),owner_email:email.trim()}).eq("student_id",editingId):await supabase.from("Owners_Table").insert([{name:name.trim(),student_id:studentId.trim(),contact:contact.trim(),owner_email:email.trim()}]);setBusy(false);if(result.error){setNotice(result.error.message||"Could not save this owner.");return;}setNotice(editingId?"Owner details updated.":"Owner added to the directory.");clear();const {data}=await supabase.from("Owners_Table").select("*");setOwners(data||[]);}
-  function edit(o){setEditingId(o.student_id);setName(o.name||"");setStudentId(o.student_id||"");setContact(o.contact||"");setEmail(o.owner_email||"");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}
-  async function remove(id){if(!window.confirm("Delete this owner and all items linked to their student ID?"))return;const first=await supabase.from("Items_Table").delete().eq("owner_id",id);if(first.error){setNotice("Could not remove linked items. Owner was not deleted.");return;}const second=await supabase.from("Owners_Table").delete().eq("student_id",id);if(second.error){setNotice("Linked items were removed, but the owner could not be deleted.");return;}setOwners(rows=>rows.filter(o=>o.student_id!==id));setNotice("Owner and linked items deleted.");}
-  return <AdminShell><div className="page-content"><div className="page-heading"><div><div className="eyebrow">People directory</div><h1 className="page-title">Owners</h1><p className="page-subtitle">Keep contact details current so belongings can get back to the right people.</p></div><div className="stat-card" style={{padding:"12px 17px",boxShadow:"none"}}><div className="stat-top">Total owners <span className="stat-value" style={{fontSize:20,margin:"0 0 0 12px"}}>{owners.length}</span></div></div></div>
-    <div className="form-layout"><section className="form-card"><h2>{editingId?"Update owner":"Add an owner"}</h2><p className="form-intro">Enter the owner&apos;s student ID and contact information.</p><form onSubmit={saveOwner}><div className="field-grid"><div className="field"><label htmlFor="owner-name">Full name</label><input id="owner-name" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Alex Santos"/></div><div className="field"><label htmlFor="student-id">Student ID</label><input id="student-id" value={studentId} readOnly={!!editingId} onChange={e=>setStudentId(e.target.value)} placeholder="e.g. 2024001234"/></div><div className="field"><label htmlFor="owner-contact">Contact number</label><input id="owner-contact" value={contact} onChange={e=>setContact(e.target.value)} placeholder="e.g. +63 912 345 6789"/></div><div className="field"><label htmlFor="owner-email">Email address</label><input id="owner-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></div></div>{notice&&<div className={`notice ${notice.startsWith("Could")||notice.startsWith("Complete")?"error":""}`} role="status">{notice}</div>}<div className="form-actions"><button type="button" className="button" onClick={clear}>Clear</button><button className="button button-primary" disabled={busy}><FiPlus/>{busy?"Saving…":editingId?"Save changes":"Add owner"}</button></div></form></section><aside className="info-card"><h3>Owner records</h3><p>Student ID is the key that connects each registered item to its owner.</p><ul><li>Search by name, ID, email, or phone.</li><li>Updating an owner keeps linked items connected.</li><li>Deleting an owner also removes their linked item records.</li></ul></aside></div>
-    <section className="panel" style={{marginTop:20}}><div className="panel-head"><div><h2 className="panel-title">Owner directory</h2><p className="panel-description">{filtered.length} {filtered.length===1?"record":"records"}</p></div><div className="search-box"><FiSearch className="search-symbol"/><input aria-label="Search owners" placeholder="Search owners" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/></div></div><div style={{padding:16}}><div className="owner-grid">{current.map(o=><article className="owner-card" key={o.student_id}><div className="owner-card-top"><div className="avatar">{(o.name||"?").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()}</div><div><h3>{o.name||"Unnamed owner"}</h3><p>Student ID · {o.student_id}</p></div></div><div className="owner-detail"><FiPhone/>{o.contact||"No phone number"}</div><div className="owner-detail"><FiMail/>{o.owner_email||"No email address"}</div><div className="owner-actions"><button className="button button-small" onClick={()=>edit(o)}><FiEdit2/> Edit</button><button className="button button-small button-danger" onClick={()=>remove(o.student_id)}><FiTrash2/> Delete</button></div></article>)}</div>{current.length===0&&<div className="table-empty">{owners.length?"No owners match your search.":"No owners yet. Add an owner above to get started."}</div>}</div>{filtered.length>0&&<div className="pagination"><span>Page {page} of {pages}</span><div className="page-numbers"><button disabled={page===1} onClick={()=>setPage(page-1)}>Previous</button><button disabled={page===pages} onClick={()=>setPage(page+1)}>Next</button></div></div>}</section>
-  </div></AdminShell>;
+  const router=useRouter();
+  const [owners,setOwners]=useState([]);
+  const [search,setSearch]=useState("");
+  const [page,setPage]=useState(1);
+  const [name,setName]=useState("");
+  const [studentId,setStudentId]=useState("");
+  const [contact,setContact]=useState("");
+  const [email,setEmail]=useState("");
+  const [editingId,setEditingId]=useState(null);
+  const [notice,setNotice]=useState("");
+  const [busy,setBusy]=useState(false);
+
+  useEffect(()=>{(async()=>{const {data:{user}}=await supabase.auth.getUser();
+    if(!user){router.push("/login");
+      return;
+    }
+    const {data,error}=await supabase.from("Owners_Table").select("*");
+    if(error)setNotice("Could not load owners.");
+    else setOwners(data||[]);
+  })();},[router]);
+
+  const filtered=useMemo(()=>owners.filter(o=>[o.name,o.student_id,o.owner_email,o.contact].some(v=>String(v||"").toLowerCase().includes(search.toLowerCase()))),[owners,search]);
+  const pages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  const current=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+
+  function clear(){
+    setName("");
+    setStudentId("");
+    setContact("");
+    setEmail("");
+    setEditingId(null);
+    setNotice("");
+  }
+
+  async function saveOwner(e){e.preventDefault();
+    if(!name.trim()||!studentId.trim()||!contact.trim()||!email.trim()){
+      setNotice("Complete each field before saving.");
+      return;
+    }setBusy(true);
+    const result=editingId?await supabase.from("Owners_Table").update({name:name.trim(),contact:contact.trim(),owner_email:email.trim()}).eq("student_id",editingId):await supabase.from("Owners_Table").insert([{name:name.trim(),student_id:studentId.trim(),contact:contact.trim(),owner_email:email.trim()}]);
+    setBusy(false);
+    if(result.error){setNotice(result.error.message||"Could not save this owner.");
+      return;
+    }setNotice(editingId?"Owner details updated.":"Owner added to the directory.");
+    clear();
+    const {data}=await supabase.from("Owners_Table").select("*");setOwners(data||[]);
+  }
+
+  function edit(o){setEditingId(o.student_id);
+    setName(o.name||"");
+    setStudentId(o.student_id||"");
+    setContact(o.contact||"");
+    setEmail(o.owner_email||"");
+    setNotice("");
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  async function remove(id){
+    if(!window.confirm("Delete this owner and all items linked to their student ID?"))return;
+    const first=await supabase.from("Items_Table").delete().eq("owner_id",id);
+    if(first.error){
+      setNotice("Could not remove linked items. Owner was not deleted.");
+      return;
+    }
+    const second=await supabase.from("Owners_Table").delete().eq("student_id",id);
+    if(second.error){
+      setNotice("Linked items were removed, but the owner could not be deleted.");
+      return;
+    }
+    setOwners(rows=>rows.filter(o=>o.student_id!==id));
+    setNotice("Owner and linked items deleted.");
+  }
+
+  return <AdminShell>
+    <span className="brand-mark brand-icon">
+      <img src="/taptrack-icon.svg" alt="" />
+    </span>
+    <div className="page-content">
+      <div className="page-heading">
+        <div>
+          <div className="eyebrow">People directory</div>
+          <h1 className="page-title">Owners</h1>
+          <p className="page-subtitle">Keep contact details current so belongings can get back to the right people.</p>
+        </div>
+        <div className="stat-card" style={{padding:"12px 17px",boxShadow:"none"}}>
+          <div className="stat-top">Total owners
+            <span className="stat-value" style={{fontSize:20,margin:"0 0 0 12px"}}>{owners.length}</span>
+          </div>
+        </div>
+      </div>
+      <div className="form-layout">
+        <section className="form-card">
+          <h2>{editingId?"Update owner":"Add an owner"}</h2>
+          <p className="form-intro">Enter the owner&apos;s student ID and contact information.</p>
+          <form onSubmit={saveOwner}>
+            <div className="field-grid">
+              <div className="field">
+                <label htmlFor="owner-name">Full name</label>
+                <input id="owner-name" value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Alex Santos"/>
+              </div>
+              <div className="field">
+                <label htmlFor="student-id">Student ID</label>
+                <input id="student-id" value={studentId} readOnly={!!editingId} onChange={e=>setStudentId(e.target.value)} placeholder="e.g. 2024001234"/>
+              </div>
+              <div className="field">
+                <label htmlFor="owner-contact">Contact number</label>
+                <input id="owner-contact" value={contact} onChange={e=>setContact(e.target.value)} placeholder="e.g. +63 912 345 6789"/>
+              </div>
+              <div className="field">
+                <label htmlFor="owner-email">Email address</label>
+                <input id="owner-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/>
+              </div>
+            </div>
+            {notice&&<div className={`notice ${notice.startsWith("Could")||notice.startsWith("Complete")?"error":""}`} role="status">{notice}</div>}
+            <div className="form-actions">
+              <button type="button" className="button" onClick={clear}>Clear</button>
+              <button className="button button-primary" disabled={busy}><FiPlus/>{busy?"Saving…":editingId?"Save changes":"Add owner"}</button>
+            </div>
+          </form>
+        </section>
+        <aside className="info-card">
+          <h3>Owner records</h3>
+          <p>Student ID is the key that connects each registered item to its owner.</p>
+          <ul>
+            <li>Search by name, ID, email, or phone.</li>
+            <li>Updating an owner keeps linked items connected.</li>
+            <li>Deleting an owner also removes their linked item records.</li>
+          </ul>
+        </aside>
+      </div>
+      <section className="panel" style={{marginTop:20}}>
+        <div className="panel-head">
+          <div>
+            <h2 className="panel-title">Owner directory</h2>
+            <p className="panel-description">{filtered.length} {filtered.length===1?"record":"records"}</p>
+          </div>
+          <div className="search-box">
+            <FiSearch className="search-symbol"/>
+            <input aria-label="Search owners" placeholder="Search owners" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}}/>
+          </div>
+        </div>
+        <div style={{padding:16}}>
+          <div className="owner-grid">{current.map(o=>
+            <article className="owner-card" key={o.student_id}>
+              <div className="owner-card-top">
+                <div className="avatar">{(o.name||"?").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()}</div>
+                <div>
+                  <h3>{o.name||"Unnamed owner"}</h3>
+                  <p>Student ID · {o.student_id}</p>
+                </div>
+              </div>
+              <div className="owner-detail">
+                <FiPhone/>{o.contact||"No phone number"}
+              </div>
+              <div className="owner-detail">
+                <FiMail/>{o.owner_email||"No email address"}
+              </div>
+              <div className="owner-actions">
+                <button className="button button-small" onClick={()=>edit(o)}><FiEdit2/> Edit</button>
+                <button className="button button-small button-danger" onClick={()=>remove(o.student_id)}><FiTrash2/> Delete</button>
+              </div>
+            </article>)}
+          </div>{current.length===0&&<div className="table-empty">{owners.length?"No owners match your search.":"No owners yet. Add an owner above to get started."}</div>}
+        </div>{filtered.length>0&&<div className="pagination">
+          <span>Page {page} of {pages}</span>
+          <div className="page-numbers">
+            <button disabled={page===1} onClick={()=>setPage(page-1)}>Previous</button>
+            <button disabled={page===pages} onClick={()=>setPage(page+1)}>Next</button>
+          </div>
+        </div>}
+      </section>
+    </div>
+  </AdminShell>;
 }
